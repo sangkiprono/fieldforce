@@ -1,5 +1,5 @@
 ﻿import uuid
-from sqlalchemy import Column, String, DateTime
+from sqlalchemy import Column, String, Float, DateTime
 from sqlalchemy.sql import func
 from app.database import Base
 
@@ -10,4 +10,6 @@ class Customer(Base):
     name = Column(String, nullable=False)
     phone = Column(String, nullable=False)
     address = Column(String, nullable=False)
+    latitude = Column(Float, nullable=True)
+    longitude = Column(Float, nullable=True)
     created_at = Column(DateTime(timezone=True), server_default=func.now())

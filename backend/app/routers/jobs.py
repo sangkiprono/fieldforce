@@ -13,6 +13,7 @@ from app.schemas.job import (
 )
 from app.auth.dependencies import get_current_user, require_manager
 from app.storage.local import save_upload_file
+from app.storage.ws_manager import manager as ws_manager
 
 router = APIRouter(prefix="/jobs", tags=["jobs"])
 
@@ -21,7 +22,7 @@ def generate_job_number(db: Session) -> str:
     return f"JOB-{count:04d}-{random.randint(100,999)}"
 
 @router.post("", response_model=JobOut)
-def create_job(payload: JobCreate, db: Session = Depends(get_db), current_user: User = Depends(require_manager)):
+async def create_job(payload: JobCreate, db: Session = Depends(get_db), current_user: User = Depends(require_manager)):
     job = Job(
         job_number=generate_job_number(db),
         customer_id=payload.customer_id,
@@ -34,6 +35,7 @@ def create_job(payload: JobCreate, db: Session = Depends(get_db), current_user: 
     db.add(job)
     db.commit()
     db.refresh(job)
+    await ws_manager.broadcast({"type": "job_created", "job_id": job.id})
     return job
 
 @router.get("", response_model=list[JobOut])
@@ -64,7 +66,7 @@ def get_job(job_id: str, db: Session = Depends(get_db), _=Depends(get_current_us
     return job
 
 @router.patch("/{job_id}/assign", response_model=JobOut)
-def assign_job(job_id: str, payload: JobAssign, db: Session = Depends(get_db), _=Depends(require_manager)):
+async def assign_job(job_id: str, payload: JobAssign, db: Session = Depends(get_db), _=Depends(require_manager)):
     job = db.query(Job).filter(Job.id == job_id).first()
     if not job:
         raise HTTPException(status_code=404, detail="Job not found")
@@ -72,17 +74,24 @@ def assign_job(job_id: str, payload: JobAssign, db: Session = Depends(get_db), _
     job.status = "assigned"
     db.commit()
     db.refresh(job)
+    await ws_manager.broadcast({"type": "job_updated", "job_id": job.id, "status": job.status.value})
     return job
 
 @router.patch("/{job_id}/status", response_model=JobOut)
-def update_status(job_id: str, payload: JobStatusUpdate, db: Session = Depends(get_db), current_user: User = Depends(get_current_user)):
+async def update_status(job_id: str, payload: JobStatusUpdate, db: Session = Depends(get_db), current_user: User = Depends(get_current_user)):
     job = db.query(Job).filter(Job.id == job_id).first()
     if not job:
         raise HTTPException(status_code=404, detail="Job not found")
     job.status = payload.status
+
+    if payload.status == "on_site" and payload.latitude is not None and payload.longitude is not None:
+        job.checkin_latitude = payload.latitude
+        job.checkin_longitude = payload.longitude
+
     db.add(JobStatusHistory(job_id=job.id, status=payload.status, changed_by=current_user.id, note=payload.note))
     db.commit()
     db.refresh(job)
+    await ws_manager.broadcast({"type": "job_updated", "job_id": job.id, "status": job.status.value})
     return job
 
 @router.get("/{job_id}/history", response_model=list[JobStatusHistoryOut])

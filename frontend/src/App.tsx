@@ -4,6 +4,7 @@ import Login from "./pages/Login";
 import Dashboard from "./pages/manager/Dashboard";
 import CreateJob from "./pages/manager/CreateJob";
 import JobDetail from "./pages/manager/JobDetail";
+import DispatchMap from "./pages/manager/DispatchMap";
 import MyJobs from "./pages/technician/MyJobs";
 
 function ProtectedRoute({ children, role }: { children: JSX.Element; role?: "manager" | "technician" }) {
@@ -26,6 +27,9 @@ export default function App() {
         } />
         <Route path="/manager/jobs/:jobId" element={
           <ProtectedRoute role="manager"><JobDetail /></ProtectedRoute>
+        } />
+        <Route path="/manager/map" element={
+          <ProtectedRoute role="manager"><DispatchMap /></ProtectedRoute>
         } />
         <Route path="/technician" element={
           <ProtectedRoute role="technician"><MyJobs /></ProtectedRoute>

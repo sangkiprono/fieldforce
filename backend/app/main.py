@@ -3,7 +3,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 from app.database import Base, engine
 from app import models
-from app.routers import auth, customers, jobs, dashboard
+from app.routers import auth, customers, jobs, dashboard, websocket
 
 Base.metadata.create_all(bind=engine)
 
@@ -23,6 +23,7 @@ app.include_router(auth.router)
 app.include_router(customers.router)
 app.include_router(jobs.router)
 app.include_router(dashboard.router)
+app.include_router(websocket.router)
 
 @app.get("/")
 def root():

@@ -1,6 +1,6 @@
 ﻿import uuid
 import enum
-from sqlalchemy import Column, String, Text, DateTime, Enum, ForeignKey
+from sqlalchemy import Column, String, Text, DateTime, Float, Enum, ForeignKey
 from sqlalchemy.orm import relationship
 from sqlalchemy.sql import func
 from app.database import Base
@@ -39,6 +39,8 @@ class Job(Base):
     status = Column(Enum(JobStatus), default=JobStatus.pending)
     assigned_technician_id = Column(String, ForeignKey("users.id"), nullable=True)
     scheduled_at = Column(DateTime(timezone=True), nullable=True)
+    checkin_latitude = Column(Float, nullable=True)
+    checkin_longitude = Column(Float, nullable=True)
     created_by = Column(String, ForeignKey("users.id"), nullable=False)
     created_at = Column(DateTime(timezone=True), server_default=func.now())
     updated_at = Column(DateTime(timezone=True), server_default=func.now(), onupdate=func.now())

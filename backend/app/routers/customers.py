@@ -4,12 +4,25 @@ from app.database import get_db
 from app.models.customer import Customer
 from app.schemas.customer import CustomerCreate, CustomerOut
 from app.auth.dependencies import require_manager
+from app.storage.geocoding import geocode_address
 
 router = APIRouter(prefix="/customers", tags=["customers"])
 
 @router.post("", response_model=CustomerOut)
-def create_customer(payload: CustomerCreate, db: Session = Depends(get_db), _=Depends(require_manager)):
-    customer = Customer(**payload.model_dump())
+async def create_customer(payload: CustomerCreate, db: Session = Depends(get_db), _=Depends(require_manager)):
+    lat, lng = payload.latitude, payload.longitude
+    if lat is None or lng is None:
+        result = await geocode_address(payload.address)
+        if result:
+            lat, lng = result
+
+    customer = Customer(
+        name=payload.name,
+        phone=payload.phone,
+        address=payload.address,
+        latitude=lat,
+        longitude=lng,
+    )
     db.add(customer)
     db.commit()
     db.refresh(customer)

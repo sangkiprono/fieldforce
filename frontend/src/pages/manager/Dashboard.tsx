@@ -2,6 +2,7 @@
 import { useNavigate } from "react-router-dom";
 import client from "../../api/client";
 import { useAuth } from "../../context/AuthContext";
+import { useJobsSocket } from "../../hooks/useJobsSocket";
 
 interface Job {
   id: string;
@@ -29,11 +30,11 @@ export default function Dashboard() {
   const [jobs, setJobs] = useState<Job[]>([]);
   const [statusFilter, setStatusFilter] = useState("");
   const [loading, setLoading] = useState(true);
+  const [liveFlash, setLiveFlash] = useState(false);
   const { user, logout } = useAuth();
   const navigate = useNavigate();
 
   const fetchJobs = async () => {
-    setLoading(true);
     const params = statusFilter ? { status: statusFilter } : {};
     const res = await client.get("/jobs", { params });
     setJobs(res.data);
@@ -41,8 +42,15 @@ export default function Dashboard() {
   };
 
   useEffect(() => {
+    setLoading(true);
     fetchJobs();
   }, [statusFilter]);
+
+  useJobsSocket(() => {
+    fetchJobs();
+    setLiveFlash(true);
+    setTimeout(() => setLiveFlash(false), 1500);
+  });
 
   const handleLogout = () => {
     logout();
@@ -56,7 +64,16 @@ export default function Dashboard() {
           <h1 className="text-xl font-bold text-slate-800">FieldForce</h1>
           <p className="text-sm text-slate-500">Welcome, {user?.name}</p>
         </div>
-        <div className="flex gap-3">
+        <div className="flex items-center gap-3">
+          {liveFlash && (
+            <span className="text-xs text-green-600 font-medium animate-pulse">● Live update</span>
+          )}
+          <button
+            onClick={() => navigate("/manager/map")}
+            className="border border-slate-300 text-slate-600 px-4 py-2 rounded hover:bg-slate-100 transition"
+          >
+            🗺 Map View
+          </button>
           <button
             onClick={() => navigate("/manager/create-job")}
             className="bg-blue-600 text-white px-4 py-2 rounded font-medium hover:bg-blue-700 transition"

@@ -17,6 +17,8 @@ class JobAssign(BaseModel):
 class JobStatusUpdate(BaseModel):
     status: JobStatus
     note: str | None = None
+    latitude: float | None = None
+    longitude: float | None = None
 
 class JobOut(BaseModel):
     id: str
@@ -28,6 +30,8 @@ class JobOut(BaseModel):
     status: JobStatus
     assigned_technician: UserOut | None
     scheduled_at: datetime | None
+    checkin_latitude: float | None
+    checkin_longitude: float | None
     created_at: datetime
     updated_at: datetime
 
