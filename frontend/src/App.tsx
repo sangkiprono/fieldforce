@@ -5,7 +5,10 @@ import Dashboard from "./pages/manager/Dashboard";
 import CreateJob from "./pages/manager/CreateJob";
 import JobDetail from "./pages/manager/JobDetail";
 import DispatchMap from "./pages/manager/DispatchMap";
+import Inventory from "./pages/manager/Inventory";
 import MyJobs from "./pages/technician/MyJobs";
+import MyStock from "./pages/technician/MyStock";
+import CustomerPortal from "./pages/CustomerPortal";
 
 function ProtectedRoute({ children, role }: { children: JSX.Element; role?: "manager" | "technician" }) {
   const { user } = useAuth();
@@ -19,6 +22,7 @@ export default function App() {
     <BrowserRouter>
       <Routes>
         <Route path="/login" element={<Login />} />
+        <Route path="/track" element={<CustomerPortal />} />
         <Route path="/manager" element={
           <ProtectedRoute role="manager"><Dashboard /></ProtectedRoute>
         } />
@@ -31,8 +35,14 @@ export default function App() {
         <Route path="/manager/map" element={
           <ProtectedRoute role="manager"><DispatchMap /></ProtectedRoute>
         } />
+        <Route path="/manager/inventory" element={
+          <ProtectedRoute role="manager"><Inventory /></ProtectedRoute>
+        } />
         <Route path="/technician" element={
           <ProtectedRoute role="technician"><MyJobs /></ProtectedRoute>
+        } />
+        <Route path="/technician/stock" element={
+          <ProtectedRoute role="technician"><MyStock /></ProtectedRoute>
         } />
         <Route path="*" element={<Navigate to="/login" replace />} />
       </Routes>

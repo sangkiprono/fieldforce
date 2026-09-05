@@ -7,19 +7,28 @@ export function useJobsSocket(onUpdate: () => void) {
   useEffect(() => {
     const ws = new WebSocket("ws://127.0.0.1:8000/ws/jobs");
 
+    ws.onopen = () => {
+      console.log("[WS] connected");
+    };
+
     ws.onmessage = (event) => {
+      console.log("[WS] message received:", event.data);
       try {
         const data = JSON.parse(event.data);
         if (data.type === "job_created" || data.type === "job_updated") {
           callbackRef.current();
         }
-      } catch {
-        // ignore malformed messages
+      } catch (e) {
+        console.log("[WS] parse error", e);
       }
     };
 
-    ws.onerror = () => {
-      // silent — connection issues shouldn't break the UI
+    ws.onerror = (e) => {
+      console.log("[WS] error", e);
+    };
+
+    ws.onclose = () => {
+      console.log("[WS] closed");
     };
 
     return () => {

@@ -60,26 +60,42 @@ export default function JobDetail() {
   const [notes, setNotes] = useState<Note[]>([]);
   const [photos, setPhotos] = useState<Photo[]>([]);
   const [technicians, setTechnicians] = useState<Technician[]>([]);
+  const [selectedTech, setSelectedTech] = useState("");
+  const [assigning, setAssigning] = useState(false);
   const [loading, setLoading] = useState(true);
 
   const fetchAll = async () => {
     setLoading(true);
-    const [jobRes, historyRes, notesRes, photosRes] = await Promise.all([
+    const [jobRes, historyRes, notesRes, photosRes, techsRes] = await Promise.all([
       client.get(`/jobs/${jobId}`),
       client.get(`/jobs/${jobId}/history`),
       client.get(`/jobs/${jobId}/notes`),
       client.get(`/jobs/${jobId}/photos`),
+      client.get(`/auth/technicians`),
     ]);
     setJob(jobRes.data);
     setHistory(historyRes.data);
     setNotes(notesRes.data);
     setPhotos(photosRes.data);
+    setTechnicians(techsRes.data);
     setLoading(false);
   };
 
   useEffect(() => {
     fetchAll();
   }, [jobId]);
+
+  const handleAssign = async () => {
+    if (!selectedTech) return;
+    setAssigning(true);
+    try {
+      await client.patch(`/jobs/${jobId}/assign`, { technician_id: selectedTech });
+      await fetchAll();
+      setSelectedTech("");
+    } finally {
+      setAssigning(false);
+    }
+  };
 
   if (loading || !job) {
     return <div className="p-6 text-slate-500">Loading job...</div>;
@@ -128,6 +144,31 @@ export default function JobDetail() {
               <p className="text-slate-700 text-sm">{job.description}</p>
             </div>
           )}
+
+          <div className="mt-4 pt-4 border-t border-slate-100">
+            <p className="text-slate-400 text-sm mb-2">
+              {job.assigned_technician ? "Reassign technician" : "Assign technician"}
+            </p>
+            <div className="flex gap-2">
+              <select
+                value={selectedTech}
+                onChange={(e) => setSelectedTech(e.target.value)}
+                className="flex-1 border border-slate-300 rounded px-3 py-2 text-sm"
+              >
+                <option value="">Select a technician</option>
+                {technicians.map((t) => (
+                  <option key={t.id} value={t.id}>{t.name}</option>
+                ))}
+              </select>
+              <button
+                onClick={handleAssign}
+                disabled={!selectedTech || assigning}
+                className="bg-blue-600 text-white px-4 py-2 rounded text-sm font-medium hover:bg-blue-700 disabled:opacity-50"
+              >
+                {assigning ? "Assigning..." : "Assign"}
+              </button>
+            </div>
+          </div>
         </div>
 
         <div className="bg-white rounded-lg shadow-sm border border-slate-200 p-6">

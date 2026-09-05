@@ -13,6 +13,12 @@ interface Job {
   description: string | null;
 }
 
+interface StockEntry {
+  id: string;
+  item: { id: string; name: string; unit: string };
+  quantity: number;
+}
+
 const statusFlow: Record<string, string | null> = {
   assigned: "en_route",
   en_route: "on_site",
@@ -40,10 +46,12 @@ const statusColors: Record<string, string> = {
 
 export default function MyJobs() {
   const [jobs, setJobs] = useState<Job[]>([]);
+  const [stock, setStock] = useState<StockEntry[]>([]);
   const [loading, setLoading] = useState(true);
   const [updatingId, setUpdatingId] = useState<string | null>(null);
   const [photoJobId, setPhotoJobId] = useState<string | null>(null);
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
+  const [materialsUsed, setMaterialsUsed] = useState<{ item_id: string; quantity: string }[]>([]);
   const [uploading, setUploading] = useState(false);
   const { user, logout } = useAuth();
   const navigate = useNavigate();
@@ -55,8 +63,14 @@ export default function MyJobs() {
     setLoading(false);
   };
 
+  const fetchStock = async () => {
+    const res = await client.get("/inventory/my-stock");
+    setStock(res.data);
+  };
+
   useEffect(() => {
     fetchJobs();
+    fetchStock();
   }, []);
 
   const handleAdvanceStatus = async (job: Job) => {
@@ -65,6 +79,7 @@ export default function MyJobs() {
 
     if (nextStatus === "completed") {
       setPhotoJobId(job.id);
+      setMaterialsUsed([]);
       return;
     }
 
@@ -75,6 +90,20 @@ export default function MyJobs() {
     } finally {
       setUpdatingId(null);
     }
+  };
+
+  const addMaterialRow = () => {
+    setMaterialsUsed([...materialsUsed, { item_id: "", quantity: "" }]);
+  };
+
+  const updateMaterialRow = (index: number, field: "item_id" | "quantity", value: string) => {
+    const updated = [...materialsUsed];
+    updated[index][field] = value;
+    setMaterialsUsed(updated);
+  };
+
+  const removeMaterialRow = (index: number) => {
+    setMaterialsUsed(materialsUsed.filter((_, i) => i !== index));
   };
 
   const handleCompleteWithPhoto = async (jobId: string) => {
@@ -88,10 +117,22 @@ export default function MyJobs() {
           headers: { "Content-Type": "multipart/form-data" },
         });
       }
+
+      for (const m of materialsUsed) {
+        if (m.item_id && m.quantity) {
+          await client.post(`/inventory/jobs/${jobId}/materials`, {
+            item_id: m.item_id,
+            quantity_used: parseInt(m.quantity),
+          });
+        }
+      }
+
       await client.patch(`/jobs/${jobId}/status`, { status: "completed" });
       setPhotoJobId(null);
       setSelectedFile(null);
+      setMaterialsUsed([]);
       await fetchJobs();
+      await fetchStock();
     } finally {
       setUploading(false);
     }
@@ -112,12 +153,20 @@ export default function MyJobs() {
           <h1 className="text-xl font-bold text-slate-800">My Jobs</h1>
           <p className="text-sm text-slate-500">{user?.name}</p>
         </div>
-        <button
-          onClick={handleLogout}
-          className="border border-slate-300 text-slate-600 px-4 py-2 rounded hover:bg-slate-100 transition"
-        >
-          Log out
-        </button>
+        <div className="flex gap-3">
+          <button
+            onClick={() => navigate("/technician/stock")}
+            className="border border-slate-300 text-slate-600 px-4 py-2 rounded hover:bg-slate-100 transition"
+          >
+            My Stock
+          </button>
+          <button
+            onClick={handleLogout}
+            className="border border-slate-300 text-slate-600 px-4 py-2 rounded hover:bg-slate-100 transition"
+          >
+            Log out
+          </button>
+        </div>
       </header>
 
       <main className="p-6 max-w-2xl mx-auto">
@@ -143,14 +192,46 @@ export default function MyJobs() {
                 {job.description && <p className="text-sm text-slate-500 mb-3">{job.description}</p>}
 
                 {photoJobId === job.id ? (
-                  <div className="mt-3 border border-slate-200 rounded p-3 bg-slate-50 space-y-2">
-                    <p className="text-sm font-medium text-slate-700">Attach proof of work (optional)</p>
-                    <input
-                      type="file"
-                      accept="image/*"
-                      onChange={(e) => setSelectedFile(e.target.files?.[0] || null)}
-                      className="text-sm"
-                    />
+                  <div className="mt-3 border border-slate-200 rounded p-3 bg-slate-50 space-y-3">
+                    <div>
+                      <p className="text-sm font-medium text-slate-700 mb-1">Attach proof of work (optional)</p>
+                      <input
+                        type="file"
+                        accept="image/*"
+                        onChange={(e) => setSelectedFile(e.target.files?.[0] || null)}
+                        className="text-sm"
+                      />
+                    </div>
+
+                    <div>
+                      <div className="flex justify-between items-center mb-1">
+                        <p className="text-sm font-medium text-slate-700">Materials used (optional)</p>
+                        <button onClick={addMaterialRow} className="text-xs text-blue-600 underline">+ Add material</button>
+                      </div>
+                      {materialsUsed.map((m, i) => (
+                        <div key={i} className="flex gap-2 mb-1">
+                          <select
+                            value={m.item_id}
+                            onChange={(e) => updateMaterialRow(i, "item_id", e.target.value)}
+                            className="flex-1 border border-slate-300 rounded px-2 py-1 text-sm"
+                          >
+                            <option value="">Select item</option>
+                            {stock.map((s) => (
+                              <option key={s.item.id} value={s.item.id}>{s.item.name} ({s.quantity} left)</option>
+                            ))}
+                          </select>
+                          <input
+                            type="number"
+                            placeholder="Qty"
+                            value={m.quantity}
+                            onChange={(e) => updateMaterialRow(i, "quantity", e.target.value)}
+                            className="w-20 border border-slate-300 rounded px-2 py-1 text-sm"
+                          />
+                          <button onClick={() => removeMaterialRow(i)} className="text-red-500 text-sm">×</button>
+                        </div>
+                      ))}
+                    </div>
+
                     <div className="flex gap-2 pt-1">
                       <button
                         onClick={() => handleCompleteWithPhoto(job.id)}
@@ -160,7 +241,7 @@ export default function MyJobs() {
                         {uploading ? "Completing..." : "Confirm Completion"}
                       </button>
                       <button
-                        onClick={() => { setPhotoJobId(null); setSelectedFile(null); }}
+                        onClick={() => { setPhotoJobId(null); setSelectedFile(null); setMaterialsUsed([]); }}
                         className="text-slate-500 text-sm px-3 py-1.5"
                       >
                         Cancel

@@ -2,7 +2,7 @@
 from fastapi.security import OAuth2PasswordRequestForm
 from sqlalchemy.orm import Session
 from app.database import get_db
-from app.models.user import User
+from app.models.user import User, UserRole
 from app.schemas.user import UserCreate, UserOut, LoginRequest, TokenResponse
 from app.auth.hashing import hash_password, verify_password
 from app.auth.jwt import create_access_token
@@ -29,7 +29,6 @@ def register(payload: UserCreate, db: Session = Depends(get_db), _=Depends(requi
 
 @router.post("/bootstrap-manager", response_model=UserOut)
 def bootstrap_manager(payload: UserCreate, db: Session = Depends(get_db)):
-    """One-time route to create the first manager account when no users exist yet."""
     if db.query(User).count() > 0:
         raise HTTPException(status_code=400, detail="Users already exist. Use /auth/register instead.")
     user = User(
@@ -55,3 +54,7 @@ def login(form_data: OAuth2PasswordRequestForm = Depends(), db: Session = Depend
 @router.get("/me", response_model=UserOut)
 def me(current_user: User = Depends(get_current_user)):
     return current_user
+
+@router.get("/technicians", response_model=list[UserOut])
+def list_technicians(db: Session = Depends(get_db), _=Depends(require_manager)):
+    return db.query(User).filter(User.role == UserRole.technician, User.is_active == True).all()

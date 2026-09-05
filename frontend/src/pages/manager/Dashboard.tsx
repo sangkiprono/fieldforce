@@ -66,13 +66,19 @@ export default function Dashboard() {
         </div>
         <div className="flex items-center gap-3">
           {liveFlash && (
-            <span className="text-xs text-green-600 font-medium animate-pulse">● Live update</span>
+            <span className="text-xs text-green-600 font-medium animate-pulse">Live update</span>
           )}
+          <button
+            onClick={() => navigate("/manager/inventory")}
+            className="border border-slate-300 text-slate-600 px-4 py-2 rounded hover:bg-slate-100 transition"
+          >
+            Inventory
+          </button>
           <button
             onClick={() => navigate("/manager/map")}
             className="border border-slate-300 text-slate-600 px-4 py-2 rounded hover:bg-slate-100 transition"
           >
-            🗺 Map View
+            Map View
           </button>
           <button
             onClick={() => navigate("/manager/create-job")}
