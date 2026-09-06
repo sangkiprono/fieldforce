@@ -2,6 +2,7 @@
 import { useNavigate } from "react-router-dom";
 import client from "../../api/client";
 import { useAuth } from "../../context/AuthContext";
+import NotificationBell from "../../components/NotificationBell";
 
 interface Job {
   id: string;
@@ -153,7 +154,8 @@ export default function MyJobs() {
           <h1 className="text-xl font-bold text-slate-800">My Jobs</h1>
           <p className="text-sm text-slate-500">{user?.name}</p>
         </div>
-        <div className="flex gap-3">
+        <div className="flex items-center gap-3">
+          <NotificationBell />
           <button
             onClick={() => navigate("/technician/stock")}
             className="border border-slate-300 text-slate-600 px-4 py-2 rounded hover:bg-slate-100 transition"

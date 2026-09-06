@@ -9,8 +9,11 @@ from app.schemas.inventory import (
     JobMaterialCreate, JobMaterialOut,
 )
 from app.auth.dependencies import get_current_user, require_manager
+from app.storage.notify import notify
 
 router = APIRouter(prefix="/inventory", tags=["inventory"])
+
+LOW_STOCK_THRESHOLD = 5
 
 @router.post("/items", response_model=InventoryItemOut)
 def create_item(payload: InventoryItemCreate, db: Session = Depends(get_db), _=Depends(require_manager)):
@@ -25,7 +28,7 @@ def list_items(db: Session = Depends(get_db), _=Depends(get_current_user)):
     return db.query(InventoryItem).order_by(InventoryItem.name).all()
 
 @router.post("/allocate", response_model=TechnicianStockOut)
-def allocate_stock(payload: StockAllocate, db: Session = Depends(get_db), _=Depends(require_manager)):
+async def allocate_stock(payload: StockAllocate, db: Session = Depends(get_db), current_user: User = Depends(require_manager)):
     item = db.query(InventoryItem).filter(InventoryItem.id == payload.item_id).first()
     if not item:
         raise HTTPException(status_code=404, detail="Item not found")
@@ -50,6 +53,22 @@ def allocate_stock(payload: StockAllocate, db: Session = Depends(get_db), _=Depe
     item.total_quantity -= payload.quantity
     db.commit()
     db.refresh(stock)
+
+    await notify(
+        db, payload.technician_id,
+        title="Stock allocated",
+        message=f"You've received {payload.quantity} {item.unit} of {item.name}",
+        link="/technician/stock",
+    )
+
+    if item.total_quantity <= LOW_STOCK_THRESHOLD:
+        await notify(
+            db, current_user.id,
+            title="Low warehouse stock",
+            message=f"{item.name} is running low ({item.total_quantity} {item.unit} left)",
+            link="/manager/inventory",
+        )
+
     return stock
 
 @router.get("/my-stock", response_model=list[TechnicianStockOut])

@@ -14,6 +14,7 @@ from app.schemas.job import (
 from app.auth.dependencies import get_current_user, require_manager
 from app.storage.local import save_upload_file
 from app.storage.ws_manager import manager as ws_manager
+from app.storage.notify import notify
 
 router = APIRouter(prefix="/jobs", tags=["jobs"])
 
@@ -66,7 +67,7 @@ def get_job(job_id: str, db: Session = Depends(get_db), _=Depends(get_current_us
     return job
 
 @router.patch("/{job_id}/assign", response_model=JobOut)
-async def assign_job(job_id: str, payload: JobAssign, db: Session = Depends(get_db), _=Depends(require_manager)):
+async def assign_job(job_id: str, payload: JobAssign, db: Session = Depends(get_db), current_user: User = Depends(require_manager)):
     job = db.query(Job).filter(Job.id == job_id).first()
     if not job:
         raise HTTPException(status_code=404, detail="Job not found")
@@ -74,6 +75,14 @@ async def assign_job(job_id: str, payload: JobAssign, db: Session = Depends(get_
     job.status = "assigned"
     db.commit()
     db.refresh(job)
+
+    await notify(
+        db, payload.technician_id,
+        title="New job assigned",
+        message=f"You've been assigned {job.job_number} — {job.issue_type.value.replace('_', ' ')}",
+        link=f"/technician",
+    )
+
     await ws_manager.broadcast({"type": "job_updated", "job_id": job.id, "status": job.status.value})
     return job
 
@@ -91,6 +100,15 @@ async def update_status(job_id: str, payload: JobStatusUpdate, db: Session = Dep
     db.add(JobStatusHistory(job_id=job.id, status=payload.status, changed_by=current_user.id, note=payload.note))
     db.commit()
     db.refresh(job)
+
+    if job.created_by:
+        await notify(
+            db, job.created_by,
+            title="Job status updated",
+            message=f"{job.job_number} is now {payload.status.value.replace('_', ' ')}",
+            link=f"/manager/jobs/{job.id}",
+        )
+
     await ws_manager.broadcast({"type": "job_updated", "job_id": job.id, "status": job.status.value})
     return job
 

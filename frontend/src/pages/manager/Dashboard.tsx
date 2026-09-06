@@ -3,6 +3,7 @@ import { useNavigate } from "react-router-dom";
 import client from "../../api/client";
 import { useAuth } from "../../context/AuthContext";
 import { useJobsSocket } from "../../hooks/useJobsSocket";
+import NotificationBell from "../../components/NotificationBell";
 
 interface Job {
   id: string;
@@ -68,6 +69,7 @@ export default function Dashboard() {
           {liveFlash && (
             <span className="text-xs text-green-600 font-medium animate-pulse">Live update</span>
           )}
+          <NotificationBell />
           <button
             onClick={() => navigate("/manager/inventory")}
             className="border border-slate-300 text-slate-600 px-4 py-2 rounded hover:bg-slate-100 transition"
