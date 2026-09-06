@@ -32,6 +32,7 @@ export default function Dashboard() {
   const [statusFilter, setStatusFilter] = useState("");
   const [loading, setLoading] = useState(true);
   const [liveFlash, setLiveFlash] = useState(false);
+  const [showExportMenu, setShowExportMenu] = useState(false);
   const { user, logout } = useAuth();
   const navigate = useNavigate();
 
@@ -58,6 +59,27 @@ export default function Dashboard() {
     navigate("/login");
   };
 
+  const handleExport = async (format: "xlsx" | "pdf") => {
+    setShowExportMenu(false);
+    const params: Record<string, string> = { format };
+    if (statusFilter) params.status = statusFilter;
+
+    const token = localStorage.getItem("token");
+    const query = new URLSearchParams(params).toString();
+    const res = await fetch(`http://127.0.0.1:8000/reports/jobs/export?${query}`, {
+      headers: { Authorization: `Bearer ${token}` },
+    });
+    const blob = await res.blob();
+    const url = window.URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `fieldforce_jobs.${format}`;
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    window.URL.revokeObjectURL(url);
+  };
+
   return (
     <div className="min-h-screen bg-slate-50">
       <header className="bg-white border-b border-slate-200 px-6 py-4 flex justify-between items-center">
@@ -70,6 +92,30 @@ export default function Dashboard() {
             <span className="text-xs text-green-600 font-medium animate-pulse">Live update</span>
           )}
           <NotificationBell />
+          <div className="relative">
+            <button
+              onClick={() => setShowExportMenu(!showExportMenu)}
+              className="border border-slate-300 text-slate-600 px-4 py-2 rounded hover:bg-slate-100 transition"
+            >
+              Export
+            </button>
+            {showExportMenu && (
+              <div className="absolute right-0 mt-2 w-40 bg-white rounded-lg shadow-lg border border-slate-200 z-50">
+                <button
+                  onClick={() => handleExport("xlsx")}
+                  className="w-full text-left px-4 py-2 text-sm hover:bg-slate-50"
+                >
+                  Export as Excel
+                </button>
+                <button
+                  onClick={() => handleExport("pdf")}
+                  className="w-full text-left px-4 py-2 text-sm hover:bg-slate-50"
+                >
+                  Export as PDF
+                </button>
+              </div>
+            )}
+          </div>
           <button
             onClick={() => navigate("/manager/inventory")}
             className="border border-slate-300 text-slate-600 px-4 py-2 rounded hover:bg-slate-100 transition"
