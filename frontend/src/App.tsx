@@ -6,6 +6,7 @@ import CreateJob from "./pages/manager/CreateJob";
 import JobDetail from "./pages/manager/JobDetail";
 import DispatchMap from "./pages/manager/DispatchMap";
 import Inventory from "./pages/manager/Inventory";
+import Analytics from "./pages/manager/Analytics";
 import MyJobs from "./pages/technician/MyJobs";
 import MyStock from "./pages/technician/MyStock";
 import CustomerPortal from "./pages/CustomerPortal";
@@ -37,6 +38,9 @@ export default function App() {
         } />
         <Route path="/manager/inventory" element={
           <ProtectedRoute role="manager"><Inventory /></ProtectedRoute>
+        } />
+        <Route path="/manager/analytics" element={
+          <ProtectedRoute role="manager"><Analytics /></ProtectedRoute>
         } />
         <Route path="/technician" element={
           <ProtectedRoute role="technician"><MyJobs /></ProtectedRoute>

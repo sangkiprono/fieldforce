@@ -92,6 +92,12 @@ export default function Dashboard() {
             <span className="text-xs text-green-600 font-medium animate-pulse">Live update</span>
           )}
           <NotificationBell />
+          <button
+            onClick={() => navigate("/manager/analytics")}
+            className="border border-slate-300 text-slate-600 px-4 py-2 rounded hover:bg-slate-100 transition"
+          >
+            Analytics
+          </button>
           <div className="relative">
             <button
               onClick={() => setShowExportMenu(!showExportMenu)}
