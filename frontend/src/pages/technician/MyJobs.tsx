@@ -3,6 +3,7 @@ import { useNavigate } from "react-router-dom";
 import client from "../../api/client";
 import { useAuth } from "../../context/AuthContext";
 import NotificationBell from "../../components/NotificationBell";
+import AttendanceWidget from "../../components/AttendanceWidget";
 
 interface Job {
   id: string;
@@ -171,7 +172,9 @@ export default function MyJobs() {
         </div>
       </header>
 
-      <main className="p-6 max-w-2xl mx-auto">
+      <main className="p-6 max-w-2xl mx-auto space-y-4">
+        <AttendanceWidget />
+
         {loading ? (
           <p className="text-slate-500">Loading jobs...</p>
         ) : activeJobs.length === 0 ? (

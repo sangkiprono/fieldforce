@@ -93,6 +93,12 @@ export default function Dashboard() {
           )}
           <NotificationBell />
           <button
+            onClick={() => navigate("/manager/attendance")}
+            className="border border-slate-300 text-slate-600 px-4 py-2 rounded hover:bg-slate-100 transition"
+          >
+            Attendance
+          </button>
+          <button
             onClick={() => navigate("/manager/analytics")}
             className="border border-slate-300 text-slate-600 px-4 py-2 rounded hover:bg-slate-100 transition"
           >
